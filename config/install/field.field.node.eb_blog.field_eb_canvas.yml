@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_eb_canvas
+    - node.type.eb_blog
+  module:
+    - canvas
+id: node.eb_blog.field_eb_canvas
+field_name: field_eb_canvas
+entity_type: node
+bundle: eb_blog
+label: 'Canvas content'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: component_tree

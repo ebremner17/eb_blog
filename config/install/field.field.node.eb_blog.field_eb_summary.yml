@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_eb_summary
+    - node.type.eb_blog
+  module:
+    - node
+id: node.eb_blog.field_eb_summary
+field_name: field_eb_summary
+entity_type: node
+bundle: eb_blog
+label: Summary
+description: 'A short summary of this post.'
+required: true
+translatable: false
+default_value: []
+default_value_callback: ''
+settings: {  }
+field_type: string_long

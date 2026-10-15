@@ -1,0 +1,10 @@
+name: 'EB Blog'
+type: module
+description: 'The Blog content type and its fields.'
+core_version_requirement: ^10 || ^11
+package: Custom
+dependencies:
+  - drupal:node
+  - drupal:media
+  - drupal:datetime
+  - drupal:canvas
