@@ -1,0 +1,7 @@
+{
+    "name": "ebremner17/eb_blog",
+    "description": "Blog module for ericbremner.",
+    "type": "drupal-custom-module",
+    "homepage": "https://github.com/ebremner17/eb_blog",
+    "keywords": ["Drupal"]
+}
