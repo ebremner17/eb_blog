@@ -1,0 +1,131 @@
+<?php
+
+/**
+ * @file
+ * Install/update hooks for the EB Blog module.
+ */
+
+use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+
+/**
+ * Adds the per-post Canvas page reference field, and stops using the shared
+ * "Full content" Content Template in favor of each post's own Canvas page.
+ */
+function eb_blog_update_10001(): void {
+  if (!FieldStorageConfig::loadByName('node', 'field_eb_canvas_page')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_eb_canvas_page',
+      'entity_type' => 'node',
+      'type' => 'entity_reference',
+      'cardinality' => 1,
+      'translatable' => FALSE,
+      'settings' => [
+        'target_type' => 'canvas_page',
+      ],
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('node', 'eb_blog', 'field_eb_canvas_page')) {
+    FieldConfig::create([
+      'field_name' => 'field_eb_canvas_page',
+      'entity_type' => 'node',
+      'bundle' => 'eb_blog',
+      'label' => 'Canvas page',
+      'description' => "The Canvas page that holds this post's visually designed body content. Managed automatically; use the Canvas operation on the content list to edit it.",
+      'settings' => [
+        'handler' => 'default:canvas_page',
+        'handler_settings' => [],
+      ],
+    ])->save();
+  }
+
+  $view_display = \Drupal::entityTypeManager()
+    ->getStorage('entity_view_display')
+    ->load('node.eb_blog.default');
+  if ($view_display && !$view_display->getComponent('field_eb_canvas_page')) {
+    $view_display->setComponent('field_eb_canvas_page', [
+      'type' => 'entity_reference_entity_view',
+      'label' => 'hidden',
+      'settings' => [
+        'view_mode' => 'default',
+        'link' => FALSE,
+      ],
+      'weight' => 3,
+      'region' => 'content',
+    ])->save();
+  }
+
+  $form_display = \Drupal::entityTypeManager()
+    ->getStorage('entity_form_display')
+    ->load('node.eb_blog.default');
+  if ($form_display && $form_display->getComponent('field_eb_canvas_page')) {
+    $form_display->removeComponent('field_eb_canvas_page')->save();
+  }
+
+  // The shared Content Template rendered every Blog post identically. Each
+  // post now gets its own linked Canvas page instead, so stop using it.
+  $template = ContentTemplate::load('node.eb_blog.full');
+  if ($template && $template->status()) {
+    $template->setStatus(FALSE)->save();
+  }
+
+  // Back-fill a linked Canvas page for every Blog post that already exists;
+  // eb_blog_node_presave() does the actual creation on save.
+  $storage = \Drupal::entityTypeManager()->getStorage('node');
+  $nids = $storage->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('type', 'eb_blog')
+    ->execute();
+  foreach ($storage->loadMultiple($nids) as $node) {
+    if ($node->get('field_eb_canvas_page')->isEmpty()) {
+      $node->save();
+    }
+  }
+}
+
+/**
+ * Stops showing the Summary field on the Blog post display.
+ */
+function eb_blog_update_10002(): void {
+  $view_display = \Drupal::entityTypeManager()
+    ->getStorage('entity_view_display')
+    ->load('node.eb_blog.default');
+  if ($view_display && $view_display->getComponent('field_eb_summary')) {
+    $view_display->removeComponent('field_eb_summary')->save();
+  }
+}
+
+/**
+ * Makes the "Blog Header" a real component stored in each post's Canvas
+ * page (instead of computed only at render time), so it shows in the
+ * Canvas editor too. Hides the now-redundant hero image and date fields,
+ * since the embedded Canvas page renders them as part of that component.
+ */
+function eb_blog_update_10003(): void {
+  $view_display = \Drupal::entityTypeManager()
+    ->getStorage('entity_view_display')
+    ->load('node.eb_blog.default');
+  if ($view_display) {
+    $changed = FALSE;
+    foreach (['field_eb_hero_image', 'field_eb_date'] as $field_name) {
+      if ($view_display->getComponent($field_name)) {
+        $view_display->removeComponent($field_name);
+        $changed = TRUE;
+      }
+    }
+    if ($changed) {
+      $view_display->save();
+    }
+  }
+
+  $storage = \Drupal::entityTypeManager()->getStorage('node');
+  $nids = $storage->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('type', 'eb_blog')
+    ->execute();
+  foreach ($storage->loadMultiple($nids) as $node) {
+    $node->save();
+  }
+}

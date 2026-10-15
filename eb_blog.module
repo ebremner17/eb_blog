@@ -1,0 +1,161 @@
+<?php
+
+/**
+ * @file
+ * Hook implementations for the EB Blog module.
+ */
+
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\Page;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Url;
+use Drupal\media\MediaInterface;
+use Drupal\node\NodeInterface;
+
+const EB_BLOG_HEADER_COMPONENT_ID = 'sdc.eb_components.blog-header';
+
+/**
+ * Implements hook_entity_operation().
+ *
+ * Adds a "Canvas" operation to Blog posts on /admin/content, linking to the
+ * post's own linked Canvas page (see eb_blog_node_presave()).
+ */
+function eb_blog_entity_operation(EntityInterface $entity) {
+  $operations = [];
+  if (!$entity instanceof NodeInterface || $entity->bundle() !== 'eb_blog' || !$entity->access('update')) {
+    return $operations;
+  }
+
+  $canvas_page = $entity->get('field_eb_canvas_page')->entity;
+  if (!$canvas_page instanceof Page || !$canvas_page->access('update')) {
+    return $operations;
+  }
+
+  $operations['canvas'] = [
+    'title' => t('Canvas'),
+    'weight' => 15,
+    'url' => Url::fromRoute('canvas.boot.entity', [
+      'entity_type' => 'canvas_page',
+      'entity' => $canvas_page->id(),
+    ]),
+  ];
+  return $operations;
+}
+
+/**
+ * Builds the "Blog Header" component's prop values from a Blog post's data.
+ *
+ * A full-width hero image with the date and title below it, or just the
+ * date and title if no hero image is set.
+ */
+function _eb_blog_header_props(NodeInterface $node): array {
+  $props = [
+    'title' => $node->label(),
+    'date' => $node->get('field_eb_date')->value,
+  ];
+
+  // The "image" prop type is stored as a reference to the Media entity;
+  // Canvas resolves the actual URL/alt/width/height from it at render time.
+  $media = $node->get('field_eb_hero_image')->entity;
+  if ($media instanceof MediaInterface) {
+    $props['hero_image'] = ['target_id' => (string) $media->id()];
+  }
+
+  return $props;
+}
+
+/**
+ * Inserts or updates the "Blog Header" component at the top of a Canvas
+ * page's component tree, so it is visible and WYSIWYG in the Canvas editor,
+ * not just computed at render time.
+ *
+ * This keeps the component in sync with the post's real data on every save;
+ * any manual edits made to it directly in Canvas are overwritten.
+ */
+function _eb_blog_sync_header_component(Page $canvas_page, array $props): void {
+  $component = Component::load(EB_BLOG_HEADER_COMPONENT_ID);
+  if (!$component) {
+    return;
+  }
+
+  $tree = $canvas_page->get('components')->getValue();
+  $index = NULL;
+  foreach ($tree as $i => $item) {
+    if (($item['component_id'] ?? NULL) === EB_BLOG_HEADER_COMPONENT_ID) {
+      $index = $i;
+      break;
+    }
+  }
+
+  $item = [
+    'parent_uuid' => NULL,
+    'slot' => NULL,
+    'uuid' => $index !== NULL ? $tree[$index]['uuid'] : \Drupal::service('uuid')->generate(),
+    'component_id' => EB_BLOG_HEADER_COMPONENT_ID,
+    'component_version' => $component->getActiveVersion(),
+    'inputs' => json_encode($props),
+    'label' => NULL,
+  ];
+
+  if ($index !== NULL) {
+    $tree[$index] = $item;
+  }
+  else {
+    array_unshift($tree, $item);
+  }
+  $canvas_page->set('components', $tree);
+}
+
+/**
+ * Implements hook_node_presave().
+ *
+ * Gives every Blog post its own Canvas page to hold its visually designed
+ * body content, created on first save. Keeps its title, published state,
+ * and "Blog Header" component in sync with the post afterwards.
+ */
+function eb_blog_node_presave(NodeInterface $node) {
+  if ($node->bundle() !== 'eb_blog') {
+    return;
+  }
+
+  $canvas_page = $node->get('field_eb_canvas_page')->entity;
+  $is_new = !$canvas_page instanceof Page;
+  if ($is_new) {
+    $canvas_page = Page::create([
+      'title' => $node->label() ?: 'Untitled',
+      'status' => $node->isPublished(),
+    ]);
+  }
+  else {
+    if ($canvas_page->label() !== $node->label()) {
+      $canvas_page->set('title', $node->label());
+    }
+    if ($canvas_page->isPublished() !== $node->isPublished()) {
+      $canvas_page->setPublished($node->isPublished());
+    }
+  }
+
+  _eb_blog_sync_header_component($canvas_page, _eb_blog_header_props($node));
+  $canvas_page->save();
+
+  if ($is_new) {
+    $node->set('field_eb_canvas_page', $canvas_page->id());
+  }
+}
+
+/**
+ * Implements hook_node_predelete().
+ *
+ * Removes a Blog post's linked Canvas page along with it, so it doesn't
+ * linger as an orphaned entry in /admin/content/pages.
+ */
+function eb_blog_node_predelete(NodeInterface $node) {
+  if ($node->bundle() !== 'eb_blog') {
+    return;
+  }
+
+  $canvas_page = $node->get('field_eb_canvas_page')->entity;
+  if ($canvas_page instanceof Page) {
+    $canvas_page->delete();
+  }
+}

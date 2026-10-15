@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_eb_canvas_page
+    - node.type.eb_blog
+  module:
+    - canvas
+id: node.eb_blog.field_eb_canvas_page
+field_name: field_eb_canvas_page
+entity_type: node
+bundle: eb_blog
+label: 'Canvas page'
+description: 'The Canvas page that holds this post''s visually designed body content. Managed automatically; use the Canvas operation on the content list to edit it.'
+required: false
+translatable: false
+default_value: []
+default_value_callback: ''
+settings:
+  handler: 'default:canvas_page'
+  handler_settings: {  }
+field_type: entity_reference

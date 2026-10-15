@@ -2,6 +2,7 @@ langcode: en
 status: true
 dependencies:
   config:
+    - field.field.node.eb_blog.field_eb_canvas_page
     - field.field.node.eb_blog.field_eb_date
     - field.field.node.eb_blog.field_eb_hero_image
     - field.field.node.eb_blog.field_eb_listing_image
@@ -82,5 +83,6 @@ content:
       placeholder: ''
     third_party_settings: {  }
 hidden:
+  field_eb_canvas_page: true
   promote: true
   sticky: true
