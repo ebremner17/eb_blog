@@ -8,6 +8,7 @@
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\pathauto\Entity\PathautoPattern;
 
 /**
  * Adds the per-post Canvas page reference field, and stops using the shared
@@ -120,6 +121,41 @@ function eb_blog_update_10003(): void {
     }
   }
 
+  $storage = \Drupal::entityTypeManager()->getStorage('node');
+  $nids = $storage->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('type', 'eb_blog')
+    ->execute();
+  foreach ($storage->loadMultiple($nids) as $node) {
+    $node->save();
+  }
+}
+
+/**
+ * Enables Pathauto and sets Blog posts' URL alias pattern to
+ * /blog/YYYY-MM-DD/title, using the post's own Date field.
+ */
+function eb_blog_update_10004(): void {
+  \Drupal::service('module_installer')->install(['token', 'pathauto']);
+
+  if (!PathautoPattern::load('eb_blog')) {
+    $pattern = PathautoPattern::create([
+      'id' => 'eb_blog',
+      'label' => 'Blog',
+      'type' => 'canonical_entities:node',
+      'pattern' => '/blog/[node:field_eb_date:date:custom:Y-m-d]/[node:title]',
+    ]);
+    $pattern->addSelectionCondition([
+      'id' => 'entity_bundle:node',
+      'negate' => FALSE,
+      'context_mapping' => ['node' => 'node'],
+      'bundles' => ['eb_blog' => 'eb_blog'],
+    ]);
+    $pattern->save();
+  }
+
+  // Generate/update aliases for every existing Blog post under the new
+  // pattern.
   $storage = \Drupal::entityTypeManager()->getStorage('node');
   $nids = $storage->getQuery()
     ->accessCheck(FALSE)

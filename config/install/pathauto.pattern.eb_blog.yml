@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - node.type.eb_blog
+  module:
+    - node
+id: eb_blog
+label: Blog
+type: 'canonical_entities:node'
+pattern: '/blog/[node:field_eb_date:date:custom:Y-m-d]/[node:title]'
+selection_criteria:
+  c71ee006-519a-4ec0-8aaa-a6de2a7fae45:
+    id: 'entity_bundle:node'
+    negate: false
+    context_mapping:
+      node: node
+    bundles:
+      eb_blog: eb_blog
+selection_logic: and
+weight: 0
+relationships: {  }

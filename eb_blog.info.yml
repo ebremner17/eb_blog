@@ -8,3 +8,4 @@ dependencies:
   - drupal:media
   - drupal:datetime
   - drupal:canvas
+  - drupal:pathauto
