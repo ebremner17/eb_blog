@@ -15,6 +15,19 @@ use Drupal\node\NodeInterface;
 const EB_BLOG_HEADER_COMPONENT_ID = 'sdc.eb_components.blog-header';
 
 /**
+ * Implements hook_form_FORM_ID_alter() for views_exposed_form.
+ *
+ * On the Blog listing page, always shows the "Clear filters" button. Core
+ * hides it until a filter is actually applied; it's always visible here to
+ * match the reference design.
+ */
+function eb_blog_form_views_exposed_form_alter(array &$form, \Drupal\Core\Form\FormStateInterface $form_state) {
+  if ($form_state->get('view')?->id() === 'eb_blog' && isset($form['actions']['reset'])) {
+    $form['actions']['reset']['#access'] = TRUE;
+  }
+}
+
+/**
  * Implements hook_entity_operation().
  *
  * Adds a "Canvas" operation to Blog posts on /admin/content, linking to the

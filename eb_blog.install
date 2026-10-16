@@ -165,3 +165,45 @@ function eb_blog_update_10004(): void {
     $node->save();
   }
 }
+
+/**
+ * Adds the "Blog" view (/blog): a listing page with a listing image, date,
+ * title, and summary per post, plus Title and Date range exposed filters.
+ */
+function eb_blog_update_10005(): void {
+  if (\Drupal::entityTypeManager()->getStorage('view')->load('eb_blog')) {
+    return;
+  }
+
+  $module_path = \Drupal::service('extension.list.module')->getPath('eb_blog');
+  $data = \Drupal\Core\Serialization\Yaml::decode(file_get_contents($module_path . '/config/install/views.view.eb_blog.yml'));
+  unset($data['uuid'], $data['_core']);
+
+  \Drupal\views\Entity\View::create($data)->save();
+}
+
+/**
+ * Shows each Blog post's date on /blog as "Thursday, October 15, 2026",
+ * without the time.
+ */
+function eb_blog_update_10006(): void {
+  if (!\Drupal\Core\Datetime\Entity\DateFormat::load('eb_blog_listing_date')) {
+    \Drupal\Core\Datetime\Entity\DateFormat::create([
+      'id' => 'eb_blog_listing_date',
+      'label' => 'EB Blog listing date',
+      'pattern' => 'l, F j, Y',
+    ])->save();
+  }
+
+  $view = \Drupal::entityTypeManager()->getStorage('view')->load('eb_blog');
+  if (!$view) {
+    return;
+  }
+  $display_options = $view->get('display');
+  $display_options['default']['display_options']['fields']['field_eb_date']['settings'] = [
+    'timezone_override' => '',
+    'format_type' => 'eb_blog_listing_date',
+  ];
+  $view->set('display', $display_options);
+  $view->save();
+}

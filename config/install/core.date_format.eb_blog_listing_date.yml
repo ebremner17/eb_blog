@@ -1,0 +1,7 @@
+langcode: en
+status: true
+dependencies: {  }
+id: eb_blog_listing_date
+label: 'EB Blog listing date'
+locked: false
+pattern: 'l, F j, Y'

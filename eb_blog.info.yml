@@ -9,3 +9,4 @@ dependencies:
   - drupal:datetime
   - drupal:canvas
   - drupal:pathauto
+  - drupal:views
