@@ -207,3 +207,41 @@ function eb_blog_update_10006(): void {
   $view->set('display', $display_options);
   $view->save();
 }
+
+/**
+ * Deletes the disabled, unused "node.eb_blog.full" Content Template.
+ *
+ * It was superseded by each post's own Canvas page (see
+ * eb_blog_update_10001()) and left disabled rather than removed. Its stored
+ * component tree still referenced a Video field whose config some
+ * environments never received, which broke `drush config:import` for
+ * anyone who does have an active copy of it. It isn't used anywhere, so the
+ * fix is to remove it rather than patch the stale reference.
+ */
+function eb_blog_update_10007(): void {
+  $template = ContentTemplate::load('node.eb_blog.full');
+  if ($template) {
+    $template->delete();
+  }
+}
+
+/**
+ * Removes the "Blog" view's unused Path field.
+ *
+ * It used a Views field plugin ID ('path') that doesn't actually exist, so
+ * it silently resolved to the "Broken" field handler and always rendered
+ * empty. The listing image's link now reads the row's entity URL directly
+ * in the Twig template instead.
+ */
+function eb_blog_update_10008(): void {
+  $view = \Drupal::entityTypeManager()->getStorage('view')->load('eb_blog');
+  if (!$view) {
+    return;
+  }
+  $display_options = $view->get('display');
+  if (isset($display_options['default']['display_options']['fields']['path'])) {
+    unset($display_options['default']['display_options']['fields']['path']);
+    $view->set('display', $display_options);
+    $view->save();
+  }
+}
