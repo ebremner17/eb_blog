@@ -8,11 +8,45 @@
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\Page;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Drupal\media\MediaInterface;
 use Drupal\node\NodeInterface;
 
 const EB_BLOG_HEADER_COMPONENT_ID = 'sdc.eb_components.blog-header';
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter() for node_form.
+ *
+ * When creating a new Blog post, sends the editor straight to its linked
+ * Canvas page after save, since that's where the post's body content is
+ * actually designed.
+ */
+function eb_blog_form_node_form_alter(array &$form, FormStateInterface $form_state) {
+  $node = $form_state->getFormObject()->getEntity();
+  if ($node->bundle() !== 'eb_blog' || !$node->isNew()) {
+    return;
+  }
+  $form['actions']['submit']['#submit'][] = '_eb_blog_redirect_new_node_to_canvas';
+}
+
+/**
+ * Form submit handler: redirects to the new Blog post's Canvas page.
+ */
+function _eb_blog_redirect_new_node_to_canvas(array $form, FormStateInterface $form_state) {
+  $node = $form_state->getFormObject()->getEntity();
+  $canvas_page = $node->get('field_eb_canvas_page')->entity;
+  if ($canvas_page instanceof Page) {
+    // The node form's own submit handler already queued a "Blog post has
+    // been created" status message. It will be rendered onto the Canvas
+    // page itself by CanvasStatusMessagesSubscriber, since Canvas's page
+    // shell has no messages region of its own to show it in.
+    $form_state->setRedirectUrl(Url::fromRoute('canvas.boot.entity', [
+      'entity_type' => 'canvas_page',
+      'entity' => $canvas_page->id(),
+    ]));
+  }
+}
 
 /**
  * Implements hook_form_FORM_ID_alter() for views_exposed_form.

@@ -1,0 +1,83 @@
+/**
+ * Status messages overlay for the Canvas editor page.
+ *
+ * Canvas is a decoupled React app with no status-messages region of its
+ * own (see Drupal\eb_blog\EventSubscriber\CanvasStatusMessagesSubscriber),
+ * so this is self-contained and scoped under #eb-blog-canvas-status-messages
+ * rather than relying on the active theme's CSS, which may not be loaded on
+ * this page. It also can't rely on theme-specific classes like `.messages`:
+ * those are only added by themes (Claro, Olivero, …) that override Drupal
+ * core's default status-messages template, which this site's active theme
+ * does not, so styling instead targets the `role`/`aria-label` attributes
+ * core's default template always renders.
+ */
+#eb-blog-canvas-status-messages {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 999999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5em;
+  padding: 1em;
+  pointer-events: none;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+#eb-blog-canvas-status-messages [data-drupal-messages] {
+  display: contents;
+}
+
+#eb-blog-canvas-status-messages h2.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+#eb-blog-canvas-status-messages [role="contentinfo"] {
+  pointer-events: auto;
+  box-sizing: border-box;
+  max-width: 40em;
+  width: 100%;
+  padding: 0.75em 1em;
+  border-radius: 6px;
+  border-left: 4px solid;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  font-size: 0.9em;
+  line-height: 1.4;
+  background: #f3faef;
+  border-color: #73b355;
+  color: #325e1c;
+  animation: eb-blog-canvas-message-fade 300ms ease-out, eb-blog-canvas-message-dismiss 300ms ease-in 6s forwards;
+}
+
+#eb-blog-canvas-status-messages [role="contentinfo"][aria-label="Warning message"] {
+  background: #fdf8ed;
+  border-color: #e09600;
+  color: #6f4b00;
+}
+
+#eb-blog-canvas-status-messages [role="contentinfo"][aria-label="Error message"] {
+  background: #fdf3f2;
+  border-color: #e62600;
+  color: #7a1600;
+}
+
+#eb-blog-canvas-status-messages ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+@keyframes eb-blog-canvas-message-fade {
+  from { opacity: 0; transform: translateY(-0.5em); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes eb-blog-canvas-message-dismiss {
+  to { opacity: 0; transform: translateY(-0.5em); visibility: hidden; }
+}

@@ -1,0 +1,6 @@
+services:
+  eb_blog.canvas_status_messages_subscriber:
+    class: Drupal\eb_blog\EventSubscriber\CanvasStatusMessagesSubscriber
+    arguments: ['@current_route_match', '@renderer', '@messenger', '@extension.list.module']
+    tags:
+      - { name: event_subscriber }
